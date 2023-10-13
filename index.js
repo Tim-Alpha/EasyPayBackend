@@ -32,12 +32,21 @@ app.post("/api/data", (req, res) => {
 });
 
 app.get("/api/data", (req, res) => {
+  const page = parseInt(req.query.page) || 1; // Get the page number from the query parameters (default to page 1)
+  const pageSize = parseInt(req.query.pageSize) || 5; // Get the page number from the query parameters (default to page 1)
+
   if (submittedData.length > 0) {
-    const responseData = {
-      status: "success",
-      data: submittedData,
-    };
-    res.json(responseData);
+    const paginatedData = paginate(submittedData, page, pageSize);
+
+    if (paginatedData.length > 0) {
+      const responseData = {
+        status: "success",
+        data: paginatedData,
+        currentPage: page,
+        totalPages: Math.ceil(submittedData.length / pageSize),
+      };
+      res.json(responseData);
+    }
   } else {
     const responseData = {
       status: "error",
