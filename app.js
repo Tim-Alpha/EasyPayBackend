@@ -1,19 +1,17 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const app = express();
 const { MongoClient } = require("mongodb");
 const mongoose = require("mongoose");
 const _ = require("lodash");
 const port = 3000;
 
-app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 mongoose.set("strictQuery", false);
 app.use(express.static("public"));
-const user_name = env(USER_NAME);
-const user_pass = env(PASS_DB);
 mongoose.connect(
-  "mongodb+srv://{env(USER_NAME)}:Sachin1234@cluster0.ourbjr9.mongodb.net/EasyPayDB",
+  "mongodb+srv://sachinkinha:sachin1234@cluster0.ourbjr9.mongodb.net/EasyPayDB",
   { useNewUrlParser: true }
 );
 
