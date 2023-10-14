@@ -4,12 +4,18 @@ const app = express();
 const { MongoClient } = require("mongodb");
 const mongoose = require("mongoose");
 const _ = require("lodash");
+require("dotenv").config();
 const port = 3000;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 mongoose.set("strictQuery", false);
 app.use(express.static("public"));
+
+const username = process.env.MONGO_USERNAME;
+const password = process.env.MONGO_PASSWORD;
+const dbName = "EasyPayDB";
+
 mongoose.connect(
   "mongodb+srv://sachinkinha:sachin1234@cluster0.ourbjr9.mongodb.net/EasyPayDB",
   { useNewUrlParser: true }
@@ -24,111 +30,135 @@ function paginate(data, page = 1, pageSize = 5) {
   return paginatedData;
 }
 
-const itemsSchema = {
+const userSchema = new mongoose.Schema({
   name: String,
-};
-
-const Item = mongoose.model("Item", itemsSchema);
-
-const item1 = new Item({
-  name: "Welcome to your todolist!",
-});
-const item2 = new Item({
-  name: "Hit + button to add a new item.",
-});
-const item3 = new Item({
-  name: "<-- Hit this to delete an item.",
+  email: String,
+  number: String,
+  bankAccount: {
+    name: String,
+    fund: Number,
+  },
 });
 
-const defaultItems = [item1, item2, item3];
+const User = mongoose.model("User", userSchema);
 
-const listSchema = {
-  name: String,
-  items: [itemsSchema],
-};
+const paymentSchema = new mongoose.Schema({
+  amountPay: Number,
+  bankNumber: String,
+  senderId: String,
+  receiverId: String,
+  time: Date,
+  isSuccessful: Number, // 0 for pending, 1 for successful
+});
 
-const List = mongoose.model("List", listSchema);
+const Payment = mongoose.model("Payment", paymentSchema);
 
-app.get("/", function (req, res) {
-  Item.find({}, function (err, founditems) {
-    if (founditems.length <= 1) {
-      Item.insertMany(defaultItems, function (err) {
-        if (err) {
-          console.log(err);
-        } else {
-          console.log("Inserted Successfully!");
-        }
-      });
-      res.redirect("/");
+// Create a new user
+app.post("/api/user/create", (req, res) => {
+  const userData = req.body;
+  const user = new User(userData);
+
+  user.save((err) => {
+    if (err) {
+      res.status(500).json({ error: "Could not create the user" });
     } else {
-      res.render("list", { listTitle: "Today", newListItems: founditems });
+      res.json(user);
     }
   });
 });
 
-app.get("/:customListName", function (req, res) {
-  const customListName = _.capitalize(req.params.customListName);
-
-  List.findOne({ name: customListName }, function (err, foundList) {
-    if (!err) {
-      if (!foundList) {
-        const list = new List({
-          name: customListName,
-          items: defaultItems,
-        });
-        list.save();
-        res.redirect("/" + customListName);
-      } else {
-        res.render("list", {
-          listTitle: foundList.name,
-          newListItems: foundList.items,
-        });
-      }
+// Get a list of all users
+app.get("/api/user/get_all", (req, res) => {
+  User.find((err, users) => {
+    if (err) {
+      res.status(500).json({ error: "Could not fetch users" });
+    } else {
+      res.json(users);
     }
   });
 });
 
-app.post("/", function (req, res) {
-  const itemName = req.body.newItem;
-  const listName = req.body.list;
-  const item = new Item({
-    name: itemName,
+// Get a specific user by ID
+app.get("/api/user/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  User.findById(userId, (err, user) => {
+    if (err) {
+      res.status(500).json({ error: "Could not fetch the user" });
+    } else {
+      res.json(user);
+    }
   });
-  if (listName == "Today") {
-    item.save();
-    res.redirect("/");
-  } else {
-    List.findOne({ name: listName }, function (err, foundList) {
-      if (!err) {
-        foundList.items.push(item);
-        foundList.save();
-        res.redirect("/" + listName);
-      }
-    });
-  }
 });
 
-app.post("/delete", function (req, res) {
-  const checkedItemId = req.body.checkbox;
-  const listName = req.body.listName;
-  if (listName[0] == "Today") {
-    Item.findByIdAndRemove(checkedItemId, function (err) {
-      if (!err) {
-        res.redirect("/");
-      }
-    });
-  } else {
-    List.findOneAndUpdate(
-      { name: listName },
-      { $pull: { items: { _id: checkedItemId } } },
-      function (err, foundList) {
-        if (!err) {
-          console.log(foundList.name);
-          res.redirect("/" + foundList.name);
-        }
-      }
-    );
-  }
+// Update a user by ID
+app.put("/api/user/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const userData = req.body;
+
+  User.findByIdAndUpdate(userId, userData, { new: true }, (err, user) => {
+    if (err) {
+      res.status(500).json({ error: "Could not update the user" });
+    } else {
+      res.json(user);
+    }
+  });
+});
+
+// Delete a user by ID
+app.delete("/api/user/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  User.findByIdAndRemove(userId, (err, user) => {
+    if (err) {
+      res.status(500).json({ error: "Could not delete the user" });
+    } else {
+      res.json(user);
+    }
+  });
+});
+
+app.post("/api/payments", (req, res) => {
+  const { amountPay, bankNumber, senderId, receiverId } = req.body;
+  const time = new Date();
+  const isSuccessful = 1; // Assuming successful payment
+
+  const payment = new Payment({
+    amountPay,
+    bankNumber,
+    senderId,
+    receiverId,
+    time,
+    isSuccessful,
+  });
+
+  payment.save((err) => {
+    if (err) {
+      res.status(500).json({ error: "Failed to save payment" });
+    } else {
+      res.json(payment);
+    }
+  });
+});
+
+app.get("/api/recent-transactions", (req, res) => {
+  Payment.find({ isSuccessful: 1 }, (err, payments) => {
+    if (err) {
+      res.status(500).json({ error: "Failed to fetch recent transactions" });
+    } else {
+      res.json(payments);
+    }
+  });
+});
+
+app.get("/api/pending-payments", (req, res) => {
+  Payment.find({ isSuccessful: 0 }, (err, payments) => {
+    if (err) {
+      res.status(500).json({ error: "Failed to fetch pending payments" });
+    } else {
+      res.json(payments);
+    }
+  });
 });
 
 app.listen(process.env.PORT || port, () =>
