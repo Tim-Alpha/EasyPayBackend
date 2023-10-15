@@ -45,7 +45,7 @@ const User = mongoose.model("User", userSchema);
 
 const paymentSchema = new mongoose.Schema({
   amountPay: Number,
-  bankNumber: String,
+  upi_id: String,
   senderId: String,
   receiverId: String,
   time: Date,
@@ -120,14 +120,13 @@ app.delete("/api/user/:userId", (req, res) => {
 });
 
 app.post("/api/payments", (req, res) => {
-  const { amountPay, bankNumber, senderId, receiverId } = req.body;
+  const { amountPay, upi_id, receiverId } = req.body;
   const time = new Date();
   const isSuccessful = 1; // Assuming successful payment
 
   const payment = new Payment({
     amountPay,
-    bankNumber,
-    senderId,
+    upi_id,
     receiverId,
     time,
     isSuccessful,
@@ -142,90 +141,70 @@ app.post("/api/payments", (req, res) => {
   });
 });
 
-app.get("/api/pending-payments", (req, res) => {
-  Payment.find({ isSuccessful: 0 })
-    .populate({
-      path: "senderId",
-      select: "name bankAccount.name img",
-    })
-    .exec((err, payments) => {
-      if (err) {
-        console.error("Error fetching pending payments:", err);
-        res.status(500).json({ error: "Failed to fetch pending payments" });
-      } else {
-        const modifiedPayments = payments.map((payment) => {
-          const senderData = payment.senderId;
-          if (
-            senderData &&
-            senderData.name &&
-            senderData.bankAccount &&
-            senderData.bankAccount.name
-          ) {
-            return {
-              senderName: senderData.name,
-              time: payment.time,
-              senderImage: senderData.img,
-              bankName: senderData.bankAccount.name,
-              amount: payment.amountPay,
-            };
-          } else {
-            // Handle the case where the data is missing or not structured as expected.
-            return {
-              senderName: "N/A",
-              time: payment.time,
-              senderImage: "N/A",
-              bankName: "N/A",
-              amount: payment.amountPay,
-            };
-          }
-        });
-
-        res.json(modifiedPayments);
-      }
-    });
+app.get("/api/recent-transactions", async (req, res) => {
+  try {
+    const payments = await Payment.find({ isSuccessful: 1 }).exec();
+    const modifiedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        const senderData = await User.findOne({ upi_id: payment.upi_id }).exec();
+        if (senderData) {
+          return {
+            senderName: senderData.name,
+            time: payment.time,
+            senderImage: senderData.img,
+            bankName: senderData.bankAccount.name,
+            amount: payment.amountPay,
+          };
+        } else {
+          // Handle the case where the user is not found.
+          return {
+            senderName: "N/A",
+            time: payment.time,
+            senderImage: "N/A",
+            bankName: "N/A",
+            amount: payment.amountPay,
+          };
+        }
+      })
+    );
+    res.json(modifiedPayments);
+  } catch (err) {
+    console.error("Error fetching recent transactions:", err);
+    res.status(500).json({ error: "Failed to fetch recent transactions" });
+  }
 });
 
-app.get("/api/recent-transactions", (req, res) => {
-  Payment.find({ isSuccessful: 1 })
-    .populate({
-      path: "senderId",
-      select: "name bankAccount.name img",
-    })
-    .exec((err, payments) => {
-      if (err) {
-        console.error("Error fetching recent transactions:", err);
-        res.status(500).json({ error: "Failed to fetch recent transactions" });
-      } else {
-        const modifiedPayments = payments.map((payment) => {
-          const senderData = payment.senderId;
-          if (
-            senderData &&
-            senderData.name &&
-            senderData.bankAccount &&
-            senderData.bankAccount.name
-          ) {
-            return {
-              senderName: senderData.name,
-              time: payment.time,
-              senderImage: senderData.img,
-              bankName: senderData.bankAccount.name,
-              amount: payment.amountPay,
-            };
-          } else {
-            // Handle the case where the data is missing or not structured as expected.
-            return {
-              senderName: "N/A",
-              time: payment.time,
-              senderImage: "N/A",
-              bankName: "N/A",
-              amount: payment.amountPay,
-            };
-          }
-        });
-
-        res.json(modifiedPayments);
-      }
-    });
+app.get("/api/pending-payments", async (req, res) => {
+  try {
+    const payments = await Payment.find({ isSuccessful: 0 }).exec();
+    const modifiedPayments = await Promise.all(
+      payments.map(async (payment) => {
+        const senderData = await User.findOne({ upi_id: payment.upi_id }).exec();
+        if (senderData) {
+          return {
+            senderName: senderData.name,
+            time: payment.time,
+            senderImage: senderData.img,
+            bankName: senderData.bankAccount.name,
+            amount: payment.amountPay,
+          };
+        } else {
+          // Handle the case where the user is not found.
+          return {
+            senderName: "N/A",
+            time: payment.time,
+            senderImage: "N/A",
+            bankName: "N/A",
+            amount: payment.amountPay,
+          };
+        }
+      })
+    );
+    res.json(modifiedPayments);
+  } catch (err) {
+    console.error("Error fetching pending payments:", err);
+    res.status(500).json({ error: "Failed to fetch pending payments" });
+  }
 });
 
 app.listen(process.env.PORT || port, () =>
