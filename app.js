@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
   email: String,
   number: String,
   img: String,
+  upi_id: String,
   bankAccount: {
     name: String,
     fund: Number,
