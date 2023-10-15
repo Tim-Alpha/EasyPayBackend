@@ -145,6 +145,7 @@ app.post("/api/payments", (req, res) => {
 app.get("/api/recent-transactions", (req, res) => {
   Payment.find({ isSuccessful: 1 }, (err, payments) => {
     if (err) {
+      console.error("Error fetching recent transactions:", err);
       res.status(500).json({ error: "Failed to fetch recent transactions" });
     } else {
       res.json(payments);
@@ -155,6 +156,7 @@ app.get("/api/recent-transactions", (req, res) => {
 app.get("/api/pending-payments", (req, res) => {
   Payment.find({ isSuccessful: 0 }, (err, payments) => {
     if (err) {
+      console.error("Error fetching pending payments:", err);
       res.status(500).json({ error: "Failed to fetch pending payments" });
     } else {
       res.json(payments);
