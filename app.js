@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   number: String,
+  img: String,
   bankAccount: {
     name: String,
     fund: Number,
@@ -141,24 +142,53 @@ app.post("/api/payments", (req, res) => {
 });
 
 app.get("/api/recent-transactions", (req, res) => {
-  Payment.find({ isSuccessful: 1 }, (err, payments) => {
-    if (err) {
-      res.status(500).json({ error: "Failed to fetch recent transactions" });
-    } else {
-      res.json(payments);
-    }
-  });
+  Payment.find({ isSuccessful: 1 })
+    .populate("senderId")
+    .exec((err, payments) => {
+      if (err) {
+        res.status(500).json({ error: "Failed to fetch recent transactions" });
+      } else {
+        const modifiedPayments = payments.map((payment) => {
+          const senderData = payment.senderId;
+
+          return {
+            senderName: senderData.name,
+            time: payment.time,
+            senderImage: senderData.img,
+            bankName: senderData.bankAccount.name,
+            amount: payment.amountPay,
+          };
+        });
+
+        res.json(modifiedPayments);
+      }
+    });
 });
 
 app.get("/api/pending-payments", (req, res) => {
-  Payment.find({ isSuccessful: 0 }, (err, payments) => {
-    if (err) {
-      res.status(500).json({ error: "Failed to fetch pending payments" });
-    } else {
-      res.json(payments);
-    }
-  });
+  Payment.find({ isSuccessful: 0 })
+    .populate("senderId")
+    .exec((err, payments) => {
+      if (err) {
+        res.status(500).json({ error: "Failed to fetch pending payments" });
+      } else {
+        const modifiedPayments = payments.map((payment) => {
+          const senderData = payment.senderId;
+
+          return {
+            senderName: senderData.name,
+            time: payment.time,
+            senderImage: senderData.img,
+            bankName: senderData.bankAccount.name,
+            amount: payment.amountPay,
+          };
+        });
+
+        res.json(modifiedPayments);
+      }
+    });
 });
+
 
 app.listen(process.env.PORT || port, () =>
   console.log("Server is running at port ", port)
