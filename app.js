@@ -142,34 +142,6 @@ app.post("/api/payments", (req, res) => {
   });
 });
 
-app.get("/api/recent-transactions", (req, res) => {
-  Payment.find({ isSuccessful: 1 })
-    .populate({
-      path: "senderId",
-      select: "name bankAccount.name img",
-    })
-    .exec((err, payments) => {
-      if (err) {
-        console.error("Error fetching recent transactions:", err);
-        res.status(500).json({ error: "Failed to fetch recent transactions" });
-      } else {
-        const modifiedPayments = payments.map((payment) => {
-          const senderData = payment.senderId;
-
-          return {
-            senderName: senderData.name,
-            time: payment.time,
-            senderImage: senderData.img,
-            bankName: senderData.bankAccount.name,
-            amount: payment.amountPay,
-          };
-        });
-
-        res.json(modifiedPayments);
-      }
-    });
-});
-
 app.get("/api/pending-payments", (req, res) => {
   Payment.find({ isSuccessful: 0 })
     .populate({
@@ -183,14 +155,29 @@ app.get("/api/pending-payments", (req, res) => {
       } else {
         const modifiedPayments = payments.map((payment) => {
           const senderData = payment.senderId;
-
-          return {
-            senderName: senderData.name,
-            time: payment.time,
-            senderImage: senderData.img,
-            bankName: senderData.bankAccount.name,
-            amount: payment.amountPay,
-          };
+          if (
+            senderData &&
+            senderData.name &&
+            senderData.bankAccount &&
+            senderData.bankAccount.name
+          ) {
+            return {
+              senderName: senderData.name,
+              time: payment.time,
+              senderImage: senderData.img,
+              bankName: senderData.bankAccount.name,
+              amount: payment.amountPay,
+            };
+          } else {
+            // Handle the case where the data is missing or not structured as expected.
+            return {
+              senderName: "N/A",
+              time: payment.time,
+              senderImage: "N/A",
+              bankName: "N/A",
+              amount: payment.amountPay,
+            };
+          }
         });
 
         res.json(modifiedPayments);
@@ -198,6 +185,48 @@ app.get("/api/pending-payments", (req, res) => {
     });
 });
 
+app.get("/api/recent-transactions", (req, res) => {
+  Payment.find({ isSuccessful: 1 })
+    .populate({
+      path: "senderId",
+      select: "name bankAccount.name img",
+    })
+    .exec((err, payments) => {
+      if (err) {
+        console.error("Error fetching recent transactions:", err);
+        res.status(500).json({ error: "Failed to fetch recent transactions" });
+      } else {
+        const modifiedPayments = payments.map((payment) => {
+          const senderData = payment.senderId;
+          if (
+            senderData &&
+            senderData.name &&
+            senderData.bankAccount &&
+            senderData.bankAccount.name
+          ) {
+            return {
+              senderName: senderData.name,
+              time: payment.time,
+              senderImage: senderData.img,
+              bankName: senderData.bankAccount.name,
+              amount: payment.amountPay,
+            };
+          } else {
+            // Handle the case where the data is missing or not structured as expected.
+            return {
+              senderName: "N/A",
+              time: payment.time,
+              senderImage: "N/A",
+              bankName: "N/A",
+              amount: payment.amountPay,
+            };
+          }
+        });
+
+        res.json(modifiedPayments);
+      }
+    });
+});
 
 app.listen(process.env.PORT || port, () =>
   console.log("Server is running at port ", port)
