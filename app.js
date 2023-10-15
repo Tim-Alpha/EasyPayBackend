@@ -3,7 +3,6 @@ const bodyParser = require("body-parser");
 const app = express();
 const { MongoClient } = require("mongodb");
 const mongoose = require("mongoose");
-const _ = require("lodash");
 require("dotenv").config();
 const port = 3000;
 
