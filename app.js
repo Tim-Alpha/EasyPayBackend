@@ -59,11 +59,11 @@ app.post("/api/user/create", (req, res) => {
   const userData = req.body;
   const user = new User(userData);
 
-  user.save((err) => {
+  user.save((err, savedUser) => {
     if (err) {
-      res.status(500).json({ error: "Could not create the user" });
+      res.status(500).json({ error: "Could not create the user", err });
     } else {
-      res.json(user);
+      res.json(savedUser);
     }
   });
 });
@@ -189,7 +189,6 @@ app.get("/api/pending-payments", (req, res) => {
       }
     });
 });
-
 
 app.listen(process.env.PORT || port, () =>
   console.log("Server is running at port ", port)
