@@ -122,7 +122,7 @@ app.delete("/api/user/:userId", (req, res) => {
 app.post("/api/payments", (req, res) => {
   const { amountPay, upi_id, receiverId } = req.body;
   const time = new Date();
-  const isSuccessful = 1; // Assuming successful payment
+  const isSuccessful = 1;
 
   const payment = new Payment({
     amountPay,
@@ -146,7 +146,9 @@ app.get("/api/recent-transactions", async (req, res) => {
     const payments = await Payment.find({ isSuccessful: 1 }).exec();
     const modifiedPayments = await Promise.all(
       payments.map(async (payment) => {
-        const senderData = await User.findOne({ upi_id: payment.upi_id }).exec();
+        const senderData = await User.findOne({
+          upi_id: payment.upi_id,
+        }).exec();
         if (senderData) {
           return {
             senderName: senderData.name,
@@ -179,7 +181,9 @@ app.get("/api/pending-payments", async (req, res) => {
     const payments = await Payment.find({ isSuccessful: 0 }).exec();
     const modifiedPayments = await Promise.all(
       payments.map(async (payment) => {
-        const senderData = await User.findOne({ upi_id: payment.upi_id }).exec();
+        const senderData = await User.findOne({
+          upi_id: payment.upi_id,
+        }).exec();
         if (senderData) {
           return {
             senderName: senderData.name,
@@ -204,6 +208,24 @@ app.get("/api/pending-payments", async (req, res) => {
   } catch (err) {
     console.error("Error fetching pending payments:", err);
     res.status(500).json({ error: "Failed to fetch pending payments" });
+  }
+});
+
+// Get fund of a specific user by ID
+app.get("/api/user/:userId", async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const user = await User.findById(userId).exec();
+
+    if (user && user.bankAccount && user.bankAccount.fund) {
+      res.json({ fund: user.bankAccount.fund });
+    } else {
+      res.status(404).json({ error: "User not found or no fund available" });
+    }
+  } catch (err) {
+    console.error("Error fetching user's fund:", err);
+    res.status(500).json({ error: "Failed to fetch user's fund" });
   }
 });
 
