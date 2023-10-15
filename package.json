@@ -1,10 +1,9 @@
 {
   "name": "easypay",
   "version": "1.0.0",
-  "description": "This is a project for submition",
+  "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Sachin Kinha",
@@ -17,5 +16,8 @@
     "mongodb": "^6.1.0",
     "mongoose": "^6.8.4",
     "node": "^19.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
