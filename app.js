@@ -211,22 +211,16 @@ app.get("/api/pending-payments", async (req, res) => {
   }
 });
 
-// Get fund of a specific user by ID
-app.get("/api/user/:userId", async (req, res) => {
-  const userId = req.params.userId;
-
-  try {
-    const user = await User.findById(userId).exec();
-
-    if (user && user.bankAccount && user.bankAccount.fund) {
-      res.json({ fund: user.bankAccount.fund });
+// Add fund to a specific user by ID
+app.post("/api/user/add_fund", (req, res) => {
+  const { fund_add, userId } = req.body;
+  User.findById(userId, (err, user) => {
+    if (err) {
+      res.status(500).json({ error: "User not found" });
     } else {
-      res.status(404).json({ error: "User not found or no fund available" });
+      res.json(user);
     }
-  } catch (err) {
-    console.error("Error fetching user's fund:", err);
-    res.status(500).json({ error: "Failed to fetch user's fund" });
-  }
+  });
 });
 
 app.listen(process.env.PORT || port, () =>
