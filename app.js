@@ -214,12 +214,29 @@ app.get("/api/pending-payments", async (req, res) => {
 // Add fund to a specific user by ID
 app.post("/api/user/add_fund", (req, res) => {
   const { fund_add, userId } = req.body;
+
+  // Ensure that fund_add is a positive number
+  if (fund_add <= 0) {
+    return res.status(400).json({ error: "Invalid fund amount" });
+  }
+
   User.findById(userId, (err, user) => {
     if (err) {
-      res.status(500).json({ error: "User not found" });
-    } else {
-      res.json(user);
+      return res.status(500).json({ error: "User not found" });
     }
+
+    // Add the funds to the user's account
+    user.bankAccount.fund += fund_add;
+
+    // Save the updated user with the added funds
+    user.save((err, updatedUser) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ error: "Failed to add funds to the user" });
+      }
+      res.json(updatedUser);
+    });
   });
 });
 
