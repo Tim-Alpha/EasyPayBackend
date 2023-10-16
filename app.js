@@ -127,7 +127,7 @@ app.post("/api/upi/payments", async (req, res) => {
   try {
     // Find the sender and receiver users
     const sender = await User.findOne({ upi_id }).exec();
-    const receiver = await User.findOne(receiver_upi_id).exec();
+    const receiver = await User.findOne({ receiver_upi_id }).exec();
 
     if (!sender || !receiver) {
       return res.status(400).json({ error: "Sender or receiver not found" });
