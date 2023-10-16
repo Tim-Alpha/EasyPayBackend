@@ -119,26 +119,49 @@ app.delete("/api/user/:userId", (req, res) => {
   });
 });
 
-app.post("/api/payments", (req, res) => {
-  const { amountPay, upi_id, receiverId } = req.body;
+app.post("/api/upi/payments", async (req, res) => {
+  const { amountPay, upi_id, receiver_upi_id } = req.body;
   const time = new Date();
   const isSuccessful = 1;
 
-  const payment = new Payment({
-    amountPay,
-    upi_id,
-    receiverId,
-    time,
-    isSuccessful,
-  });
+  try {
+    // Find the sender and receiver users
+    const sender = await User.findOne({ upi_id }).exec();
+    const receiver = await User.findOne(receiver_upi_id).exec();
 
-  payment.save((err) => {
-    if (err) {
-      res.status(500).json({ error: "Failed to save payment" });
-    } else {
-      res.json(payment);
+    if (!sender || !receiver) {
+      return res.status(400).json({ error: "Sender or receiver not found" });
     }
-  });
+
+    if (sender.bankAccount.fund < amountPay) {
+      return res.status(400).json({ error: "Insufficient funds" });
+    }
+
+    // Deduct the payment amount from the sender's account
+    sender.bankAccount.fund -= amountPay;
+
+    // Add the payment amount from the receiver's account
+    receiver.bankAccount.fund += amountPay;
+
+    // Save the updated sender's user data
+    await sender.save();
+
+    // Create and save the payment entry
+    const payment = new Payment({
+      amountPay,
+      upi_id,
+      receiver_upi_id,
+      time,
+      isSuccessful,
+    });
+
+    await payment.save();
+
+    res.json(payment);
+  } catch (err) {
+    console.error("Error processing payment:", err);
+    res.status(500).json({ error: "Failed to process the payment" });
+  }
 });
 
 app.get("/api/recent-transactions", async (req, res) => {
